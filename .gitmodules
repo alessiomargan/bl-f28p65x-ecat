@@ -1,0 +1,3 @@
+[submodule "external/SOES"]
+	path = external/SOES
+	url = https://github.com/alessiomargan/SOES.git
