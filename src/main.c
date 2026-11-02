@@ -11,7 +11,7 @@
 #include "sci_io_driverlib.h"
 #include "boot_f28p65x.h"
 
-extern void EtherCAT_init(void);
+extern void EtherCAT_init(bool preserve_esc);
 
 extern esc_cfg_t config;
 
@@ -59,7 +59,7 @@ static void Device_BaseInit(void) {
     // reside in RAM.
     Flash_initModule(FLASH0CTRL_BASE, FLASH0ECC_BASE, DEVICE_FLASH_WAITSTATES);
 #endif
-    
+
     // Verify the XTAL crystal frequency.
     if(!Device_verifyXTAL(DEVICE_OSCSRC_FREQ / 1000000)) {
         ESTOP0;
@@ -90,7 +90,9 @@ static void Device_BaseInit(void) {
 //
 void main()
 {
-    boot_capture_request();
+    /* Consume the application-to-bootloader handoff before normal startup. */
+    bool force_bootloader = boot_capture_request();
+
     // clocks, Flash, GPIO unlock, PIE/vector table
     Device_BaseInit();
     // Syscfg generate initialization
@@ -105,11 +107,18 @@ void main()
         PRINTLN("FAIL Configure_flashAPI");
         FatalError_Handler(FATAL_ERROR_FLASH_API);
     }
-    
+
+    PRINTLN("Boot request = %s", force_bootloader ? "FORCED" : "NORMAL");
+
+    /* If neither request forces recovery, a valid image branches through its
+     * bank-1 codestart before the ESC, SOES, timers or interrupts are started. */
     boot_try_start_application();
-    // Start EtherCAT only when the bootloader remains in recovery.
-    EtherCAT_init();
-    
+
+    /* A force request is a warm application-to-bootloader handoff. Preserve
+     * the configured station address and ESC RAM so the master's retry still
+     * reaches this slave. Cold recovery performs the complete ESC reset. */
+    EtherCAT_init(force_bootloader);
+
     // Init soes
     esc_cfg_t boot_config = config;
     boot_config.post_state_change_hook = boot_post_state_change;

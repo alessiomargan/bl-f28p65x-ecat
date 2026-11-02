@@ -19,6 +19,7 @@ repository before it is transferred.
 - CRC-32 validation of the application payload and manifest.
 - Commit marker written only after the complete image has been verified.
 - Startup validation before any application jump.
+- Warm application-to-bootloader handoff that preserves the integrated ESC.
 - Recovery after an interrupted erase, write, or commit operation.
 - Host tests for the production FoE callbacks and image validator.
 - Pinned checksum verification for the reviewed SOES FoE implementation.
@@ -148,14 +149,22 @@ The input must be a flat binary produced from an application linked at C28
 word address `0x0A0000`. It is not sufficient to rename a CCS `.out` file or
 an unverified raw binary.
 
+The preferred command is run from the companion `f28p65x-soes` repository. It
+performs a clean full rebuild of the selected CCS application configuration,
+checks the reviewed SOES FoE sources, and then packages the rebuilt binary:
+
 ```sh
 make foe-package \
-  APP_BIN=/path/to/f28p65x-soes.bin \
+  CONFIG=APP_CC \
+  APP_BIN=./APP_CC/f28p65x-soes.bin \
   FOE_BOARD=cc \
   FOE_IMAGE=f28p65x.bin
 ```
 
-Use `FOE_BOARD=lp` for the LaunchPad. The equivalent direct command is:
+Use `FOE_BOARD=lp` when packaging a LaunchPad application build. When run from
+this bootloader repository, `make foe-package APP_BIN=...` packages an already
+built application; it does not rebuild the separate application project. The
+equivalent direct packaging command is:
 
 ```sh
 python3 tools/pack_foe_image.py \
@@ -181,10 +190,14 @@ it into the separate commit sector only after validation succeeds.
 
 ## FoE update flow
 
-1. The application receives an EtherCAT transition to BOOT, writes the
-   retained boot request and resets the CPU.
-2. The bootloader consumes that request and remains in recovery instead of
-   starting the currently installed application.
+1. The application receives an EtherCAT transition to BOOT, disables CPU
+   interrupts, writes the integrity-checked request to shared NOINIT RAM, and
+   branches directly to the bootloader codestart at `0x080000`.
+2. The bootloader consumes and clears the request, remains in recovery instead
+   of starting the installed application, and uses the warm initialization
+   path. This path preserves the integrated ESC clock, configured station
+   address, SyncManager RAM and EEPROM-loaded state so the existing master
+   session can continue into Bootstrap.
 3. The master places the slave in Bootstrap and writes `f28p65x.bin` with
    password `0xF280`.
 4. The bootloader erases the commit sector first, then erases and programs the
@@ -197,7 +210,14 @@ it into the separate commit sector only after validation succeeds.
    branching to the application at `0x0A0000`.
 
 The application and bootloader linker files must reserve the same
-`.boot_request` NOINIT section at word address `0x0003FC`.
+`.boot_request` NOINIT section at word address `0x0003FC`. The four-word
+mailbox contains a 32-bit magic value and its inverse; the application writes
+the magic last, and the bootloader accepts only a matching pair.
+
+On a cold start without a forced request, the bootloader validates and starts
+the application before initializing EtherCAT. If no valid application exists,
+it enters recovery using the complete cold ESC reset, RAM initialization and
+EEPROM-load sequence.
 
 ## Verification
 
@@ -217,8 +237,8 @@ The tests use simulated mailbox and flash storage. They cover successful
 updates, malformed requests, transfer aborts, payload/manifest corruption,
 program and erase failures, reset during an upload, and torn commit markers.
 They do not replace target testing of the TI compiler, Flash API, ECC,
-retention RAM, reset causes, link map, power interruption, or the application
-jump.
+the shared NOINIT mailbox, warm ESC preservation, link map, power interruption,
+or the application jump.
 
 ## Security and operational limits
 

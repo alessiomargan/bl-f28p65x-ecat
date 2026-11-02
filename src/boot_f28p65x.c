@@ -5,22 +5,21 @@
 #include "boot_image.h"
 #include "boot_f28p65x.h"
 
-/* Both new linker files reserve this four-word retention mailbox. It is a
- * request to remain in recovery, never permission to execute an image. */
-__attribute__((section(".boot_request")))
-static volatile uint32_t boot_request[2];
 #define BOOT_REQUEST_MAGIC 0xB007B007UL
+
+/* Both linker files map this four-word NOINIT section at CPU word address
+ * 0x0003FC. The application commits the magic after writing its inverse. */
+__attribute__((section(".boot_request")))
+static volatile struct {
+    uint32_t magic;
+    uint32_t magic_inverse;
+} boot_request;
 
 static void reset_device(void)
 {
     DINT;
     SysCtl_resetDevice();
     for (;;) {}
-}
-
-void jump_to_bootloader(void)
-{
-    /* In the bootloader, INIT->BOOT already entered the FoE service. */
 }
 
 static bool force_recovery;
@@ -38,16 +37,13 @@ static bool erase_words(uint32_t address, uint32_t count)
 }
 static const boot_flash_io_t flash_io = {read_word, program_words, erase_words};
 
-void boot_capture_request(void)
+bool boot_capture_request(void)
 {
-    uint32_t cause = SysCtl_getResetCause();
-    force_recovery = ((cause & SYSCTL_CAUSE_WDRS) != 0UL) &&
-                     ((cause & SYSCTL_CAUSE_POR) == 0UL) &&
-                     boot_request[0] == BOOT_REQUEST_MAGIC &&
-                     boot_request[1] == (BOOT_REQUEST_MAGIC ^ 0xFFFFFFFFUL);
-    boot_request[0] = 0UL;
-    boot_request[1] = 0UL;
-    SysCtl_clearResetCause(cause);
+    force_recovery = (boot_request.magic == BOOT_REQUEST_MAGIC) &&
+                     (boot_request.magic_inverse == ~BOOT_REQUEST_MAGIC);
+    boot_request.magic = 0UL;
+    boot_request.magic_inverse = 0UL;
+    return force_recovery;
 }
 
 uint32_t foe_update_prepare(void)
