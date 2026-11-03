@@ -126,6 +126,22 @@ The resulting executable is:
 <CONFIG>/bl-f28p65x-ecat.out
 ```
 
+### Codestart source and SysConfig
+
+Every standalone C28x image must provide exactly one `code_start` symbol in a
+`codestart` section. Both bootloader board configurations import the SysConfig
+**Device Support** module and leave **Use Standard Code Start Branch** enabled
+(the default). SysConfig therefore adds C2000Ware's
+`device_support/f28p65x/common/source/f28p65x_codestartbranch.asm` to the CCS
+build automatically. Do not also keep a copy under `src/`, or the linker will
+report that `code_start` is redefined.
+
+For a project that does not use SysConfig, or one where **Use Standard Code
+Start Branch** is disabled, add one copy of `f28p65x_codestartbranch.asm` to
+the project sources. Never use both the SysConfig-provided source and a local
+copy. After changing this option, perform a clean rebuild so CCS regenerates
+its makefiles.
+
 ## Initial programming
 
 The bootloader must first be programmed into bank 0 with CCS, UniFlash, or the

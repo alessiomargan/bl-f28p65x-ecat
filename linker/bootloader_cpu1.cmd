@@ -51,8 +51,6 @@ MEMORY
    CLATODMARAM      : origin = 0x001680,   length = 0x000080
    DMATOCLARAM      : origin = 0x001700,   length = 0x000080
 
-   CANA_MSG_RAM     : origin = 0x049000, length = 0x000800
-   CANB_MSG_RAM     : origin = 0x04B000, length = 0x000800
    RESET            : origin = 0x3FFFC0, length = 0x000002
 }
 
@@ -71,7 +69,6 @@ SECTIONS
    .bss:output      : > RAMLS3
    .init_array      : > FLASH_BANK0, ALIGN(8)
    .const           : > FLASH_BANK0, ALIGN(8)
-   .data:can_dma     : > RAMGS0, ALIGN(2)
    .data            : > RAMLS6
    .sysmem          : > RAMLS4
 #else
