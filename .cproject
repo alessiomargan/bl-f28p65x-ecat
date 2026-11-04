@@ -100,7 +100,7 @@
                 </extensions>
             </storageModule>
             <storageModule moduleId="cdtBuildSystem" version="4.0.0">
-                <configuration artifactExtension="out" artifactName="${ProjName}" buildProperties="" cleanCommand="${CG_CLEAN_CMD}" description="" id="com.ti.ccstudio.buildDefinitions.C2000.Default.33024353.LAUNCHXL_BOOTLOADER" name="LP_BLDR" parent="com.ti.ccstudio.buildDefinitions.C2000.Default" prebuildStep="python3 &quot;${PROJECT_ROOT}/tools/check_foe_stack.py&quot; &amp;&amp; ${PROJECT_ROOT}/external/uc-test/common_src/gen_build_info.sh  ${PROJECT_ROOT}/external/uc-test/common_src/soes_test">
+                <configuration artifactExtension="out" artifactName="${ProjName}" buildProperties="" cleanCommand="${CG_CLEAN_CMD}" description="" id="com.ti.ccstudio.buildDefinitions.C2000.Default.33024353.LAUNCHXL_BOOTLOADER" name="LP_BLDR" parent="com.ti.ccstudio.buildDefinitions.C2000.Default" prebuildStep="python3 &quot;${PROJECT_ROOT}/tools/check_foe_stack.py&quot; &amp;&amp; ${PROJECT_ROOT}/tools/gen_build_info.sh  ${PROJECT_ROOT}/src">
                     <folderInfo id="com.ti.ccstudio.buildDefinitions.C2000.Default.33024353.LAUNCHXL_BOOTLOADER" name="/" resourcePath="">
                         <toolChain id="com.ti.ccstudio.buildDefinitions.C2000_25.11.exe.DebugToolchain.468865571.LAUNCHXL_BOOTLOADER" name="TI Build Tools" superClass="com.ti.ccstudio.buildDefinitions.C2000_25.11.exe.DebugToolchain" targetTool="com.ti.ccstudio.buildDefinitions.C2000_25.11.exe.linkerDebug.2081034453">
                             <option id="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS.1544316350.LAUNCHXL_BOOTLOADER" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_TAGS" valueType="stringList">
